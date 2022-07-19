@@ -19,8 +19,7 @@ head(all_csvs)
 
 
 all_csvs$Month <- str_sub(all_csvs$monthorweek,1,10)
-
-floor_date(all_csvs$Month, unit = "month")
+all_csvs$Month <- ymd(all_csvs$Month)
 
 
 ## Reading in Score Card Data ##
