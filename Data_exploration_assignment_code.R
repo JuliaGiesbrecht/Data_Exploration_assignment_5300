@@ -43,4 +43,8 @@ processed_data <- google_trends %>%
     inner_join(id_name_link, by = "schname") 
     
 processed_data <- processed_data %>% 
-  inner_join(score_card, by = c("unitid" = "UNITID"))
+  inner_join(score_card, by = c("unitid" = "UNITID", "opeid" = "OPEID"))
+
+## Filtering and cleaning the data ##
+
+processed_data <- processed_data %>% 
