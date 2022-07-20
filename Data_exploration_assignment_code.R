@@ -65,9 +65,16 @@ colSums(is.na(processed_data))
 class(processed_data$median_earings)
 
 head(processed_data)
-hist(processed_data$median_earings, main = 'Histogram of Median Earnings',
-     xlab= "Median Earings", ylab = "Count")
 median(processed_data$median_earings)
 mean(processed_data$median_earings)
+max(processed_data$median_earings)
+min(processed_data$median_earings)
+quantile(processed_data$median_earings)
+IQR(processed_data$median_earings)
+
+# first quartile at 25%, second quartile at 50% and third quartile at 75% hence 
+# there will be four quarters to represent first 25%, second 25%, third 25% and 
+# the last 25% in a set of data.
+processed_data$quartile_earnings<-cut(processed_data$median_earings,quantile(processed_data$median_earings),include.lowest=TRUE,labels=FALSE)
 
   
