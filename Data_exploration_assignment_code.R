@@ -26,7 +26,6 @@ google_trends <- google_trends %>%
 
 
   
-
 ## Reading in Score Card Data ##
 
 score_card <- read_csv('Data/Lab3_Rawdata/Most+Recent+Cohorts+(Scorecard+Elements).csv')
@@ -47,4 +46,28 @@ processed_data <- processed_data %>%
 
 ## Filtering and cleaning the data ##
 
+# filtering for colleges that predominantly grant bachelor’s degrees
 processed_data <- processed_data %>% 
+  filter(PREDDEG == 3 ) %>% 
+  select(unit_id = 'unitid', 'opeid', school_name = 'schname', key_word = 'keyword', 
+         key_num = 'keynum', median_earings = 'md_earn_wne_p10-REPORTED-EARNINGS', 
+          'Month', "Index_standard", bach_deg = 'PREDDEG')
+
+
+## Median earnings ##
+processed_data$median_earings <- as.numeric(processed_data$median_earings)
+processed_data <- na.omit(processed_data)
+
+
+sum(is.na(processed_data$median_earings))
+colSums(is.na(processed_data))
+
+class(processed_data$median_earings)
+
+head(processed_data)
+hist(processed_data$median_earings, main = 'Histogram of Median Earnings',
+     xlab= "Median Earings", ylab = "Count")
+median(processed_data$median_earings)
+mean(processed_data$median_earings)
+
+  
