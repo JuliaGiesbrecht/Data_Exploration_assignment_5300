@@ -85,11 +85,21 @@ class(processed_data$median_earings)
 quantile(processed_data$median_earings)
 processed_data$quartile_earnings<-cut(processed_data$median_earings,quantile(processed_data$median_earings),include.lowest=TRUE,labels=FALSE)
 
-# group by month and quartile and the mean of inthe index standard
+processed_data$low_earnings <- ifelse(processed_data$quartile_earnings == '1', 1, 0) 
+processed_data$low_med_earnings  <- ifelse(processed_data$quartile_earnings == '2', 1, 0)
+processed_data$med_high_earnings  <- ifelse(processed_data$quartile_earnings == '3', 1, 0) 
+processed_data$high_earnings <- ifelse(processed_data$quartile_earnings == '4', 1, 0) 
+
+#before and after the score card is introduced
+processed_data$before_score_card <- ifelse(processed_data$date <= '2015-09-01', 1, 0) 
+
+
+
+# group by date and quartile and the mean of inthe index standard
 processed_data <- processed_data %>% 
-  group_by(Month, year, quartile_earnings)%>% 
-  mutate(mean(Index_standard)) %>% 
-  select('date', 'Month', 'year', 'quartile_earnings', 'mean(Index_standard)')
+  group_by(date, quartile_earnings)%>% 
+  mutate(mean_index_by_date = mean(Index_standard)) %>% 
+  select('date', 'Month', 'year', 'quartile_earnings', 'mean_index_by_date')
 
 processed_data$quartile_earnings <- as.factor(processed_data$quartile_earnings)
 class(processed_data$quartile_earnings)  
@@ -102,5 +112,9 @@ ggplot( aes(x = year, y = mean(Index_standard), color = quartile_earnings)) +
 
 max(processed_data$year)
 \
-hist(google_trends$Index_standard, main = 'Histogram of Median Earnings',
-     xlab= "x", ylab = "Count")  
+#hist(google_trends$Index_standard, main = 'Histogram of Median Earnings',
+     #xlab= "x", ylab = "Count")  
+
+feols( mean_index_by_date ~ quartile_earnings, data = processed_data)
+
+
