@@ -1,0 +1,81 @@
+---
+title: "Data_exploration_analysis"
+output: html_document
+date: '2022-07-24'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Data Cleaning
+I choose to use the variable 'md_earn_wne_p10-REPORTED-EARNINGS' to find the median earnings for each school reported. From these values, I created a categorical variable that groups the earnings by the variables quartiles from 1-4. There will be four quarters to represent first 25%, second 25%, third 25% and the last 25% in the set of data.    
+0%    25%    50%    75%   100% 
+16700  36600  42000  49400 166200 
+
+I decided to use the 4th quartile with the range $49400-$166200 to represent the high earning schools, while the rest were low earning schools in the format of a binary variable to compare the two. 
+I then grouped the the standardized index by date and the binary high earning variable to get the mean index score per date (month/year) and earnings (high/low). I then created a binary variable before and after the introduction of the score card.
+
+I don't care as much about the individual schools or key words because I am more interested in the trends of the higher earning schools vs the lower earning schools before and after the score card was introduced. This is why I am not grouping the standardized indexes by school or key word but by potential earnings of the schools.
+
+
+```{r pressure, echo=FALSE}
+# Load Data
+processed_data <- read_csv('Processed_data/processed_data.csv')
+```
+
+
+
+
+Graphing the popularity (mean index by date/ high vs low earnings) over time. As you can see from the graph, there is a cyclical trend where there is an increase in popularity of key words fore both high earning and low earning schools in the spring, followed by a steep decrease in the summer and a in increase in the fall/ winter months. This trend throughout the school year is consistent with when students are applying for their undergraduate degrees. Interesting, the trend overall for both high and low earnings schools shows a steady decrease in popularity of key words (represented by standardized mean index by date) from the years 2013-2016. There is no indication of a change in the trend before or after the introduction of the score care in September 2015. The trends for both high and low earning schools shows the same trend of decreases in interest in the middle of the year, and near the end of the year before and after the score care was created.
+```{r cars} 
+processed_data$binary_high_earnings <- as.factor(processed_data$binary_high_earnings)
+
+processed_data %>% 
+ggplot( aes(x = date, y = mean_index_by_date, color = binary_high_earnings)) +
+  geom_line() + geom_point() +   theme_test()
+```
+
+
+
+
+Filtering for dates before the score card was introduced. 
+
+To answer the question, did the release of the Scorecard shift student interest to high-earnings colleges relative to low-earnings ones,the dependent variable is the popularity/interest (mean_index_by_date) and the independent variable is the high vs low earnings before and after the introduction of the score card. 
+The relationship between the Y the interest (mean_index_by_date) and the X high vs low earnings is different between whether it was before or after the score card was introduced, Z. This means there is an interaction term. 
+relationship between X and  Y is different for different values of Z , then simply include X*Z  in your model, as well as Z by itself.
+
+
+
+```{r processed_data}
+
+
+library(tidyverse) # This loads ggplot2 as well
+ggplot(processed_data, aes(x = binary_high_earnings, y = mean_index_by_date)) + 
+  geom_point() + # Draw points
+  geom_smooth(method = 'lm') # add OLS line
+
+
+before_score_card_df <- processed_data %>% 
+   filter(before_score_card == 1)
+
+processed_data$Month <- month(processed_data$date)
+processed_data$Month <- as.factor(processed_data$Month)
+feols(mean_index_by_date ~ binary_high_earnings*before_score_card + before_score_card + Month, data = processed_data)
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{}
+
+
+
+```
+
+
+
+
+

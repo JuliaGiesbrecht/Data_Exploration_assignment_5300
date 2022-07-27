@@ -23,7 +23,7 @@ library(hrbrthemes)
 file_names <- list.files('Data/Lab3_Rawdata', pattern='trends_up_to_', full.names = TRUE) 
 google_trends <- map_df(file_names, read_csv)
 
-# Creating new variable called "Month"
+# Creating new variable 'Month and 'year'
 google_trends$date <- str_sub(google_trends$monthorweek,1,10)
 google_trends$date <- ymd(google_trends$date)
 google_trends$date <- floor_date(google_trends$date, unit = "month")
@@ -84,37 +84,77 @@ class(processed_data$median_earings)
 
 quantile(processed_data$median_earings)
 processed_data$quartile_earnings<-cut(processed_data$median_earings,quantile(processed_data$median_earings),include.lowest=TRUE,labels=FALSE)
+processed_data$quartile_earnings <- as.factor(processed_data$quartile_earnings)
+class(processed_data$quartile_earnings) 
 
+
+
+
+# Creating low-earning/high-earning variables
 processed_data$low_earnings <- ifelse(processed_data$quartile_earnings == '1', 1, 0) 
 processed_data$low_med_earnings  <- ifelse(processed_data$quartile_earnings == '2', 1, 0)
 processed_data$med_high_earnings  <- ifelse(processed_data$quartile_earnings == '3', 1, 0) 
-processed_data$high_earnings <- ifelse(processed_data$quartile_earnings == '4', 1, 0) 
+processed_data$high_earnings <- ifelse(processed_data$quartile_earnings == '4', 1, 0)
+processed_data$binary_high_earnings <- ifelse(processed_data$quartile_earnings != '4', 0, 1)
+
+
+
+# group by date and quartile and the mean of in the index standard
+processed_data <- processed_data %>% 
+  group_by(date, binary_high_earnings)%>% 
+  summarise(mean_index_by_date = mean(Index_standard)) 
+
+processed_data$binary_high_earnings <- as.factor(processed_data$binary_high_earnings)
+
+# month variable
+processed_data$Month <- month(processed_data$date)
+processed_data$Month <- as.factor(processed_data$Month)
 
 #before and after the score card is introduced
 processed_data$before_score_card <- ifelse(processed_data$date <= '2015-09-01', 1, 0) 
+processed_data$before_score_card <- as.factor(processed_data$before_score_card)
+
+class(processed_data$binary_high_earnings)
+
+write.csv(processed_data,"processed_data.csv", row.names = FALSE)
 
 
 
-# group by date and quartile and the mean of inthe index standard
-processed_data <- processed_data %>% 
-  group_by(date, quartile_earnings)%>% 
-  mutate(mean_index_by_date = mean(Index_standard)) %>% 
-  select('date', 'Month', 'year', 'quartile_earnings', 'mean_index_by_date')
-
-processed_data$quartile_earnings <- as.factor(processed_data$quartile_earnings)
-class(processed_data$quartile_earnings)  
 
 
 
+# graphing the popularity (mean index by month) of quartile earnings over time
 processed_data %>% 
-ggplot( aes(x = year, y = mean(Index_standard), color = quartile_earnings)) +
+ggplot( aes(x = date, y = mean_index_by_date, color = binary_high_earnings)) +
   geom_line() + geom_point() +   theme_test()
 
-max(processed_data$year)
-\
+
+
+
+x <- processed_data %>% 
+  select(date, mean_index_by_date, binary_high_earnings) %>% 
+  filter(quartile_earnings== 4 | quartile_earnings ==1)
+
+processed_data %>% 
+  ggplot( aes(x = date, y = mean_index_by_date, color = binary_high_earnings)) +
+  geom_line() + geom_point() +   theme_test()
+
+
+ggplot(x, aes(x = quartile_earnings, y = mean_index_by_date)) + 
+  geom_point()
+
+feols(mean_index_by_date~ binary_high_earnings*before_score_card, data = processed_data)
+
+library(tidyverse) # This loads ggplot2 as well
+ggplot(processed_data, aes(x = binary_high_earnings, y = mean_index_by_date)) + 
+  geom_point() + # Draw points
+  geom_smooth(method = 'lm') # add OLS line
+
 #hist(google_trends$Index_standard, main = 'Histogram of Median Earnings',
      #xlab= "x", ylab = "Count")  
 
-feols( mean_index_by_date ~ quartile_earnings, data = processed_data)
 
+# dep - popularity(index)- high or low earning schools popularity
+# in - score card
 
+# 
