@@ -27,10 +27,6 @@ google_trends <- map_df(file_names, read_csv)
 google_trends$date <- str_sub(google_trends$monthorweek,1,10)
 google_trends$date <- ymd(google_trends$date)
 google_trends$date <- floor_date(google_trends$date, unit = "month")
-google_trends$year <- year(google_trends$date)
-google_trends$Month <- month(google_trends$date)
-
-
 
 # Standardizing Index by school name and key word
 google_trends <- google_trends %>% 
@@ -49,7 +45,6 @@ id_name_link <- id_name_link %>%
   mutate(n = n()) %>% 
   filter(n == 1)
   
-
 ### Joining Data together ###
 
 processed_data <- google_trends %>% 
@@ -67,7 +62,7 @@ processed_data <- processed_data %>%
   filter(PREDDEG == 3 ) %>% 
   select(unit_id = 'unitid', 'opeid', school_name = 'schname', key_word = 'keyword', 
          key_num = 'keynum', median_earings = 'md_earn_wne_p10-REPORTED-EARNINGS', 
-          'Month', 'year', "Index_standard", "date")
+           "Index_standard", "date")
 
 ## Median earnings - Median earnings of students working and not enrolled 10 years after entry ##
 processed_data$median_earings <- as.numeric(processed_data$median_earings)
@@ -87,35 +82,26 @@ processed_data$quartile_earnings<-cut(processed_data$median_earings,quantile(pro
 processed_data$quartile_earnings <- as.factor(processed_data$quartile_earnings)
 class(processed_data$quartile_earnings) 
 
-
-
-
-# Creating low-earning/high-earning variables
-processed_data$low_earnings <- ifelse(processed_data$quartile_earnings == '1', 1, 0) 
-processed_data$low_med_earnings  <- ifelse(processed_data$quartile_earnings == '2', 1, 0)
-processed_data$med_high_earnings  <- ifelse(processed_data$quartile_earnings == '3', 1, 0) 
-processed_data$high_earnings <- ifelse(processed_data$quartile_earnings == '4', 1, 0)
+# Creating low-earning/high-earning variables from quartile earnings. 
+# 4 being high-earnings. 1,2,3 low-earnings
 processed_data$binary_high_earnings <- ifelse(processed_data$quartile_earnings != '4', 0, 1)
+processed_data$binary_high_earnings <- as.factor(processed_data$binary_high_earnings)
+class(processed_data$binary_high_earnings)
 
-
-
-# group by date and quartile and the mean of in the index standard
+# group by date and quartile and to get mean of the standardized index score.
 processed_data <- processed_data %>% 
   group_by(date, binary_high_earnings)%>% 
   summarise(mean_index_by_date = mean(Index_standard)) 
 
-processed_data$binary_high_earnings <- as.factor(processed_data$binary_high_earnings)
-
-# month variable
+# Adding in month variable
 processed_data$Month <- month(processed_data$date)
 processed_data$Month <- as.factor(processed_data$Month)
 
-#before and after the score card is introduced
+# before and after the score card is introduced
 processed_data$before_score_card <- ifelse(processed_data$date <= '2015-09-01', 1, 0) 
 processed_data$before_score_card <- as.factor(processed_data$before_score_card)
 
-class(processed_data$binary_high_earnings)
-
+# Exporting processed data
 write.csv(processed_data,"processed_data.csv", row.names = FALSE)
 
 

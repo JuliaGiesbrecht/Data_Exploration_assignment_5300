@@ -11,70 +11,127 @@ knitr::opts_chunk$set(echo = TRUE)
 ## R Markdown
 
 Data Cleaning
-I choose to use the variable 'md_earn_wne_p10-REPORTED-EARNINGS' to find the median earnings for each school reported. From these values, I created a categorical variable that groups the earnings by the variables quartiles from 1-4. There will be four quarters to represent first 25%, second 25%, third 25% and the last 25% in the set of data.    
+
+binary_high_earnings variable:
+
+To create the binary_high_earnings variable I first used 'md_earn_wne_p10-REPORTED-EARNINGS' to find the median earnings for each school reported that predominantly grants bachelor’s degrees. From these values, I created a categorical variable that groups the earnings by quartiles from 1-4. There was four quarters to represent first 25%, second 25%, third 25% and the last 25% in the set of data.    
 0%    25%    50%    75%   100% 
 16700  36600  42000  49400 166200 
 
-I decided to use the 4th quartile with the range $49400-$166200 to represent the high earning schools, while the rest were low earning schools in the format of a binary variable to compare the two. 
-I then grouped the the standardized index by date and the binary high earning variable to get the mean index score per date (month/year) and earnings (high/low). I then created a binary variable before and after the introduction of the score card.
+I decided to use the 4th quartile with the range $49400-$166200 to represent the high earning schools, while the rest were low earning schools. This variable is in a binary format to compare high-earning schools (1) vs low-earning school (0).
 
-I don't care as much about the individual schools or key words because I am more interested in the trends of the higher earning schools vs the lower earning schools before and after the score card was introduced. This is why I am not grouping the standardized indexes by school or key word but by potential earnings of the schools.
+Mean_index_by_date  variable:
+
+First, I standardized each index for each keyword score by subtracting the mean and deviding by the standard deviation. To get to a index level of an average index score by date (month/year) and potential earnings (high(1)/low(0)), I  grouped the the standardized index by date and binary_high_earning. 
+
+Before_score_card:
+
+I created a binary variable before and after the introduction of the score card. Before the score card was introduced (1) on September 2015, and after the score card was introduced (0).
+
+
+Analysis:
+
+Research Question: Among colleges that predominantly grant bachelor’s degrees, did the release of the Scorecard shift student interest to high-earnings colleges relative to low-earnings ones.
+
+The format of the variables that I created took into consideration the research question at hand. In the question it is looking at the comparison between high and low earnings schools. Therefore, I don't care as much about the individual schools or key words because I am more interested in grouping those schools into their earning potential and seeing their trends over time. This reasoning is why I chose to group the standardized indexes by the date and earning potential to be able to easily visualize how the indexes change before and after the score card was introduced for the high and low earning schools.
 
 
 ```{r pressure, echo=FALSE}
 # Load Data
 processed_data <- read_csv('Processed_data/processed_data.csv')
+processed_data$binary_high_earnings <- as.factor(processed_data$binary_high_earnings)
+processed_data$before_score_card <- as.factor(processed_data$before_score_card)
 ```
 
+Graph of the average index score by date for high (1) and low(0) earning schools. 
 
-
-
-Graphing the popularity (mean index by date/ high vs low earnings) over time. As you can see from the graph, there is a cyclical trend where there is an increase in popularity of key words fore both high earning and low earning schools in the spring, followed by a steep decrease in the summer and a in increase in the fall/ winter months. This trend throughout the school year is consistent with when students are applying for their undergraduate degrees. Interesting, the trend overall for both high and low earnings schools shows a steady decrease in popularity of key words (represented by standardized mean index by date) from the years 2013-2016. There is no indication of a change in the trend before or after the introduction of the score care in September 2015. The trends for both high and low earning schools shows the same trend of decreases in interest in the middle of the year, and near the end of the year before and after the score care was created.
+As you can see from the graph, there is a cyclical trend where there is an increase in popularity of key words fore both high earning and low earning schools in the spring, followed by a steep decrease in the summer and a in increase in the fall/ winter months. This trend throughout the school year is consistent with when students are applying for their undergraduate degrees. Interesting, the trend overall for both high and low earnings schools shows a steady decrease in popularity of key words (represented by standardized mean index by date) from the years 2013-2016. There is no indication of a change in the trend before or after the introduction of the score care in September 2015. The trends for both high and low earning schools shows the same trend of decreases in interest in the middle of the year, and near the end of the year before and after the score care was created.
 ```{r cars} 
-processed_data$binary_high_earnings <- as.factor(processed_data$binary_high_earnings)
-
 processed_data %>% 
 ggplot( aes(x = date, y = mean_index_by_date, color = binary_high_earnings)) +
   geom_line() + geom_point() +   theme_test()
 ```
 
 
-
-
-Filtering for dates before the score card was introduced. 
-
-To answer the question, did the release of the Scorecard shift student interest to high-earnings colleges relative to low-earnings ones,the dependent variable is the popularity/interest (mean_index_by_date) and the independent variable is the high vs low earnings before and after the introduction of the score card. 
-The relationship between the Y the interest (mean_index_by_date) and the X high vs low earnings is different between whether it was before or after the score card was introduced, Z. This means there is an interaction term. 
-relationship between X and  Y is different for different values of Z , then simply include X*Z  in your model, as well as Z by itself.
-
-
-
 ```{r processed_data}
 
+library(tidyverse) 
 
-library(tidyverse) # This loads ggplot2 as well
-ggplot(processed_data, aes(x = binary_high_earnings, y = mean_index_by_date)) + 
+high_df <- processed_data %>% 
+  select(date, mean_index_by_date, binary_high_earnings,before_score_card, Month ) %>% 
+  filter(binary_high_earnings == 1)
+
+low_df <- processed_data %>% 
+  select(date, mean_index_by_date, binary_high_earnings,before_score_card, Month ) %>% 
+  filter(binary_high_earnings == 0)
+
+
+ggplot(high_df, aes(x = date, y = mean_index_by_date)) + 
   geom_point() + # Draw points
   geom_smooth(method = 'lm') # add OLS line
 
 
-before_score_card_df <- processed_data %>% 
-   filter(before_score_card == 1)
-
-processed_data$Month <- month(processed_data$date)
-processed_data$Month <- as.factor(processed_data$Month)
-feols(mean_index_by_date ~ binary_high_earnings*before_score_card + before_score_card + Month, data = processed_data)
-
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-```{}
-
+ggplot(low_df, aes(x = date, y = mean_index_by_date)) + 
+  geom_point() + # Draw points
+  geom_smooth(method = 'lm') # add OLS line
+  
 
 
 ```
 
+
+
+
+
+To answer the research question on if the release of the Scorecard shifted student interest to high-earnings colleges relative to low-earnings ones, I would want to know what effected the relative interest of those schools. In this case, the dependent variable would be the mean_index_by_date as this represents the interest or popularity of those schools. This is because the index is a score for how popular a given search term is for the prospective school in a given time. In this case its the popularity of those terms by month and year.
+
+The independent variables for this case would be the factors that influence the popularity of the search terms and therefore the relative interest in the schools represented by high (1) vs low (0) earning. Based on the reserach question, we are interested in how the interest is shifted before and after the score card is introduced depending on the earning potential of the school. This suggests that there is a relationship between the whether the school is high or low earning and if the score card was introduced. The relationship between the interest (mean_index_by_date) and the high vs low earnings is different between whether it was before or after the score card was introduced. This means there is an interaction term.
+
+Y: mean_index_by_date (continuous)
+X: before_score_card(1/0)
+Z: binary_high_earnings(1/0)
+
+The relationship between X and  Y is different for different values of Z. To run the regression, we simply include X*Z  in the model, as well as Z by itself. The goal is to see how the Scorecard shifted interest between high- and low-earnings colleges.
+
+However, looking at the initial graphs, there is a fluctuation throughout the years depending on the month. To control for the effect of month on the index score, it will need to be controlled in the model.
+
+
+```{r processed_data}
+
+# High and low earning schools controlling for month.
+reg1 <-feols(mean_index_by_date ~ before_score_card + binary_high_earnings + before_score_card*binary_high_earnings, data = processed_data)
+
+
+# Low earning schools controlling for month
+reg2 <-feols(mean_index_by_date ~ before_score_card + Month, data = low_df)
+
+
+# High earning schools controlling for month
+reg3 <-feols(mean_index_by_date ~ before_score_card  + Month, data = high_df)
+
+etable(reg1, reg2, reg3)
+
+
+```
+
+heteroskedasticity Test:
+
+Does the variance of the residuals differ accross different levels of the x-axis. x-axis is before/after the score card was introduce. Going from before the score card was introduced to after  how does that change our probability of it being from a high earning school. We can calculate the variance of those residues for high earnings and low earnings separately
+
+we are getting the residuals out of the model.The variance of the residuals for before the score card was introduced is 0.163 and after is 0.08. There is more unexplained variation from before the score card was introduced for index scores than for after. This is different accross the x-axis and therefore have heteroskedasticity. The model should use eteroskedasticity-robust standard errors in the model.
+
+
+```{r processed_data}
+processed_data%>% 
+  mutate(resid = resid(reg1)) %>%
+  group_by(before_score_card) %>%
+  summarize(variance_of_resid = var(resid))
+
+```
+```{r processed_data}
+
+
+```
 
 
 
