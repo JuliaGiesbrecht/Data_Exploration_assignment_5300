@@ -41,6 +41,7 @@ The format of the variables that I created took into consideration the research 
 processed_data <- read_csv('Processed_data/processed_data.csv')
 processed_data$binary_high_earnings <- as.factor(processed_data$binary_high_earnings)
 processed_data$before_score_card <- as.factor(processed_data$before_score_card)
+processed_data$Month <- as.factor(processed_data$Month)
 ```
 
 Graph of the average index score by date for high (1) and low(0) earning schools. 
@@ -99,7 +100,7 @@ However, looking at the initial graphs, there is a fluctuation throughout the ye
 ```{r processed_data}
 
 # High and low earning schools controlling for month.
-reg1 <-feols(mean_index_by_date ~ before_score_card + binary_high_earnings + before_score_card*binary_high_earnings, data = processed_data)
+reg1 <-feols(mean_index_by_date ~ before_score_card + binary_high_earnings + before_score_card*binary_high_earnings + Month, data = processed_data)
 
 
 # Low earning schools controlling for month
@@ -110,6 +111,8 @@ reg2 <-feols(mean_index_by_date ~ before_score_card + Month, data = low_df)
 reg3 <-feols(mean_index_by_date ~ before_score_card  + Month, data = high_df)
 
 etable(reg1, reg2, reg3)
+
+
 
 
 ```
@@ -130,6 +133,7 @@ processed_data%>%
 ```
 ```{r processed_data}
 
+reg1 <-feols(mean_index_by_date ~ before_score_card + binary_high_earnings + before_score_card*binary_high_earnings, data = processed_data)
 
 ```
 
