@@ -11,10 +11,7 @@ library(purrr)
 library(lubridate)
 library(dplyr)
 library(ggplot2)
-library(viridis)
-library(dygraphs)
-library(xts)
-library(hrbrthemes)
+
 
 
 
@@ -98,7 +95,7 @@ processed_data$Month <- month(processed_data$date)
 processed_data$Month <- as.factor(processed_data$Month)
 
 # before and after the score card is introduced
-processed_data$before_score_card <- ifelse(processed_data$date <= '2015-09-01', 1, 0) 
+processed_data$before_score_card <- ifelse(processed_data$date < '2015-09-01', 0, 1) 
 processed_data$before_score_card <- as.factor(processed_data$before_score_card)
 
 # Exporting processed data
@@ -109,38 +106,4 @@ write.csv(processed_data,"processed_data.csv", row.names = FALSE)
 
 
 
-# graphing the popularity (mean index by month) of quartile earnings over time
-processed_data %>% 
-ggplot( aes(x = date, y = mean_index_by_date, color = binary_high_earnings)) +
-  geom_line() + geom_point() +   theme_test()
 
-
-
-
-x <- processed_data %>% 
-  select(date, mean_index_by_date, binary_high_earnings) %>% 
-  filter(quartile_earnings== 4 | quartile_earnings ==1)
-
-processed_data %>% 
-  ggplot( aes(x = date, y = mean_index_by_date, color = binary_high_earnings)) +
-  geom_line() + geom_point() +   theme_test()
-
-
-ggplot(x, aes(x = quartile_earnings, y = mean_index_by_date)) + 
-  geom_point()
-
-feols(mean_index_by_date~ binary_high_earnings*before_score_card, data = processed_data)
-
-library(tidyverse) # This loads ggplot2 as well
-ggplot(processed_data, aes(x = binary_high_earnings, y = mean_index_by_date)) + 
-  geom_point() + # Draw points
-  geom_smooth(method = 'lm') # add OLS line
-
-#hist(google_trends$Index_standard, main = 'Histogram of Median Earnings',
-     #xlab= "x", ylab = "Count")  
-
-
-# dep - popularity(index)- high or low earning schools popularity
-# in - score card
-
-# 
