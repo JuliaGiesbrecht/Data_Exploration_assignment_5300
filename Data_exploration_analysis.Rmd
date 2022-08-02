@@ -50,7 +50,8 @@ As you can see from the graph, there is a cyclical trend where there is an incre
 ```{r cars} 
 processed_data %>% 
 ggplot( aes(x = date, y = mean_index_by_date, color = binary_high_earnings)) +
-  geom_line() + geom_point() +   theme_test()
+  geom_line() + geom_point() + geom_vline(xintercept = as.Date("2015-09-01"))
+
 ```
 
 
@@ -91,6 +92,7 @@ The independent variables for this case would be the factors that influence the 
 Y: mean_index_by_date (continuous)
 X: before_score_card(1/0)
 Z: binary_high_earnings(1/0)
+Control: Month (Categorical)
 
 The relationship between X and  Y is different for different values of Z. To run the regression, we simply include X*Z  in the model, as well as Z by itself. The goal is to see how the Scorecard shifted interest between high- and low-earnings colleges.
 
@@ -119,7 +121,7 @@ etable(reg1, reg2, reg3)
 
 heteroskedasticity Test:
 
-Does the variance of the residuals differ accross different levels of the x-axis. x-axis is before/after the score card was introduce. Going from before the score card was introduced to after  how does that change our probability of it being from a high earning school. We can calculate the variance of those residues for high earnings and low earnings separately
+Does the variance of the residuals differ across different levels of the x-axis. x-axis is before/after the score card was introduce. Going from before the score card was introduced to after  how does that change our probability of it being from a high earning school. We can calculate the variance of those residues for high earnings and low earnings separately
 
 we are getting the residuals out of the model.The variance of the residuals for before the score card was introduced is 0.163 and after is 0.08. There is more unexplained variation from before the score card was introduced for index scores than for after. This is different accross the x-axis and therefore have heteroskedasticity. The model should use eteroskedasticity-robust standard errors in the model.
 
@@ -131,11 +133,43 @@ processed_data%>%
   summarize(variance_of_resid = var(resid))
 
 ```
+
+
+
+Original model with the with robust standard errors included. 
+
 ```{r processed_data}
 
-reg1 <-feols(mean_index_by_date ~ before_score_card + binary_high_earnings + before_score_card*binary_high_earnings, data = processed_data)
+reg1 <-feols(mean_index_by_date ~ before_score_card + binary_high_earnings + before_score_card*binary_high_earnings + Month, data = processed_data, vcov = 'hetero')
+etable(reg1)
 
 ```
+
+Broad interpretation of the results:
+
+
+Model output: average_index_score =  -0.0376 + 0.2961 before_score_card -0.1529 binary_high_earnings + 0.1933 before_score_card × binary_high_earnings
+
+mean_index_by_date: Continuous
+  - Average index score by date and school earnings
+before_score_card: Binary
+  1: Before the score card was introduced (September 2015)
+  0: After the score card was introduced (after September 2015)
+binary_high_earnings: Binary
+  1: High earning schools
+  2: Low earning schools
+  
+
+First, for the interaction term on before the score card was introduced and high earning schools the P-value is 0.0798 meaning it is significantly significant at the __ level. There is enough evidence to reject the null hypothesis of 0 and there is infact a relationship at the __ level.
+
+B0 is the predicted index score when the variables before_score_card and binary_high_earnings are zero. This means the average index score for after the score card was introduced and was a low income school is -0.0376.
+
+B1 is the difference in the average index score between groups where before_score_card = 1 and before_score_card = 0. Therefore, B1 is the average index scores from before and after the score cards were introduced for low earning schools. For low earning schools, for before the score cards where introduced, are expected to have an additional 0.2961 index score compared to after the score card was introduced.
+
+
+
+
+
 
 
 
