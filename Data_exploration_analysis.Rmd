@@ -147,6 +147,7 @@ etable(reg1)
 
 Broad interpretation of the results:
 
+Linear regression model with interaction: Y = β0 + β1 X1 + β2 X2 + β3 X1X2
 
 Model output: average_index_score =  -0.0376 + 0.2961 before_score_card -0.1529 binary_high_earnings + 0.1933 before_score_card × binary_high_earnings
 
@@ -164,7 +165,12 @@ First, for the interaction term on before the score card was introduced and high
 
 B0 is the predicted index score when the variables before_score_card and binary_high_earnings are zero. This means the average index score for after the score card was introduced and was a low income school is -0.0376.
 
-B1 is the difference in the average index score between groups where before_score_card = 1 and before_score_card = 0. Therefore, B1 is the average index scores from before and after the score cards were introduced for low earning schools. For low earning schools, for before the score cards where introduced, are expected to have an additional 0.2961 index score compared to after the score card was introduced.
+B1 is the difference in the average index score between groups where before_score_card = 1 and before_score_card = 0 and before_score_card = 0. Therefore, B1 is the average index scores from before and after the score cards were introduced for low earning schools. For low earning schools, for before the score cards where introduced, are expected to have an additional 0.2961 index score compared to after the score card was introduced.
+
+B2 compares binary_high_earnings = 1 compared to binary_high_earning = 0 where before_score_card = 0.
+Therefore, B2 is the difference in the average index score between high earning schools and low earning schools after the score card was introduced. After the score card was introduced, high earning schools are expected to have an decrease in index scores of 0.1529 compared to low earning schools. 
+
+B3 is the difference between the effect of the score card between high earning and low earning schools. The introduction of the score card on index scores increased by 0.1933 between high and low earning schools.
 
 
 
