@@ -1,0 +1,176 @@
+---
+title: "Data_exploration_analysis"
+output: html_document
+date: '2022-07-24'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Data Cleaning
+
+binary_high_earnings variable:
+
+To create the binary_high_earnings variable, I first used 'md_earn_wne_p10-REPORTED-EARNINGS' to find the median earnings for each school reported that predominantly grants bachelor's degrees. Then, I made a binary variable from these values that groups the earnings by quartiles from 1-4. Four quarters represent the first 25%, second 25%, third 25%, and the last 25% in the data set:
+   
+0%    25%    50%    75%   100% 
+16700  36600  42000  49400 166200 
+
+I used the 4th quartile with the range $49400-$166200 to represent the high-earning schools, while the rest were low-earning schools. This variable is in a binary format to compare high-earning schools (1) vs. low-earning schools (0). I choose to use the 4th quartile as the high-earning schools because I understand high-earning to be the top-earning schools, which the 4th quartile would include. Therefore, anything less than the 4th quartile would be low-earning in comparison.
+
+Mean_index_by_date  variable:
+
+First, I standardized each index for each keyword score by subtracting the mean and dividing it by the standard deviation. So, for example, to get to an index level of an average index score by date (month/year) and potential earnings (high(1)/low(0)), I  grouped the standardized index by date and binary_high_earning. By doing this, I can see graphically how high-earning and low-earning schools compare regarding their index scores for the applicable month and year. In addition, I will be able to visualize what happened to those index scores before and after the scorecard was implemented in September 2015.
+
+Before_score_card:
+
+I created a binary variable before and after the introduction of the scorecard. Before the scorecard was introduced (0) in September 2015, and after the scorecard was introduced (1).
+
+Analysis:
+
+Research Question: Among colleges that predominantly grant bachelor's degrees, did the release of the Scorecard shift student interest to high-earnings colleges relative to low-earnings ones?
+
+The format of the variables I created considered the research question at hand. The question looks at the comparison between high and low-earnings schools. Therefore, I don't care as much about the individual schools or keywords because I am more interested in grouping them into their high or low-earning potential. The standarized indexes then represent the popularity or interest a potential student has in those schools based on how often a particular keyword is used for a school. Therefore, I found the average index scores for each month/year and for the high and low-earning schools to see the trends in the popularity over time. 
+
+
+```{r pressure, echo=FALSE}
+# Load Data
+processed_data <- read_csv('../Processed_data/processed_data.csv')
+processed_data$binary_high_earnings <- as.factor(processed_data$binary_high_earnings)
+processed_data$before_score_card <- as.factor(processed_data$before_score_card)
+processed_data$Month <- as.factor(processed_data$Month)
+```
+
+I am graphing the average index score by month and year for high (1) and low(0) earning schools. 
+
+As you can see from the graph, there is a seasonal trend where there is an increase in the popularity of keywords (average index scores) for high-earning and low-earning schools. This trend throughout the school year is consistent with when students apply for their undergraduate degrees. Interestingly, the overall trend for both high and low earnings schools shows a steady decrease in the popularity of keywords from 2013-2016. Furthermore, high and low-earning schools follow this same trend throughout the graph, with no striking difference.
+
+Further, there is no indication of a change in the trends before and after the introduction of the scorecard. Both high and low-earning schools appear to have no change in the trend before or after September 2015. 
+
+```{r cars} 
+processed_data %>% 
+ggplot( aes(x = date, y = mean_index_by_date, color = binary_high_earnings)) +
+  geom_line() + geom_point() + geom_vline(xintercept = as.Date("2015-09-01"))
+
+```
+
+As you can see from the scatter plots below, from both high and low-earning schools, there has been a steady decline in index scores or popularity in both schools throughout time. Once again, you can see the seasonality aspect throughout the year in which the regression does not fit a straight line well. This would be indicative of polynomial regression, although instead, we are interested in the interaction between the scorecard and high vs. low earning schools on index scores. Therefore, to accommodate this, we would need to control for seasonality by singling out the month as a factor variable. Controlling the month would solve the endogeneity problem so we can see the true effect of x on y.
+
+
+```{r processed_data}
+
+library(tidyverse) 
+
+high_df <- processed_data %>% 
+  select(date, mean_index_by_date, binary_high_earnings,before_score_card, Month ) %>% 
+  filter(binary_high_earnings == 1)
+
+low_df <- processed_data %>% 
+  select(date, mean_index_by_date, binary_high_earnings,before_score_card, Month ) %>% 
+  filter(binary_high_earnings == 0)
+
+
+ggplot(high_df, aes(x = date, y = mean_index_by_date)) + 
+  geom_point() + # Draw points
+  geom_smooth(method = 'lm') # add OLS line
+
+
+ggplot(low_df, aes(x = date, y = mean_index_by_date)) + 
+  geom_point() + # Draw points
+  geom_smooth(method = 'lm') # add OLS line
+  
+
+
+```
+
+To answer the research question on if the release of the Scorecard shifted student interest in high-earnings colleges relative to low-earnings ones, I would want to know what affected the relative interest of those schools. In this case, the dependent variable would be the index scores, representing the interest or popularity of those schools in a given month/ year. 
+
+The independent variables for this case would be the factors that influence the popularity of the search terms and, therefore, the relative interest in the schools represented by high (1) vs. low (0) earnings. 
+
+We are also interested in how the interest shifts before and after the Scorecard was introduced. Therefore, this suggests a relationship between whether the school is high or low-earning and if the score card was presented. The relationship between the interest or index score and the high vs. low earnings is different, whether it was before or after the score card was introduced. I interpreted this as needing an interaction term in the regression model.
+
+Y: mean_index_by_date (continuous)
+X: before_score_card(1/0)
+Z: binary_high_earnings(1/0)
+Control: Month (Categorical)
+
+The relationship between X and  Y is different for different values of Z. To run the regression, we include X*Z  in the model and Z by itself. The goal is to see how the Scorecard shifted interest between high- and low-earnings colleges. In addition, we add the control for the month in the model.
+
+
+```{r processed_data}
+
+# High and low earning schools controlling for month.
+reg1 <-feols(mean_index_by_date ~ before_score_card + binary_high_earnings + before_score_card*binary_high_earnings + Month, data = processed_data)
+
+etable(reg1)
+
+```
+
+Heteroskedasticity Test:
+
+Does the variance of the residuals differ across different levels of the x-axis? The X-axis is before/after the score card was introduced. Going from before the score card was presented to after, how does that change our probability of it being from a high-earning school? We can calculate the variance of those residues for high-earning and low-earning schools separately.
+
+We are getting the residuals out of the model. The variance of the residuals before the score card was introduced is 0.056, and after it is 0.004. There is more unexplained variation from before the score card was introduced for index scores than after. The results show a difference across the x-axis, therefore we have heteroskedasticity in the model. The model should use heteroskedasticity-robust standard errors in the model.
+
+
+```{r processed_data}
+processed_data%>% 
+  mutate(resid = resid(reg1)) %>%
+  group_by(before_score_card) %>%
+  summarize(variance_of_resid = var(resid))
+
+```
+
+Original model with the with robust standard errors included. 
+
+```{r processed_data}
+
+library(sjPlot)
+library(sjmisc)
+library(ggplot2)
+
+reg1 <-feols(mean_index_by_date ~ before_score_card + binary_high_earnings + before_score_card*binary_high_earnings + Month, data = processed_data, vcov = 'hetero')
+etable(reg1)
+
+
+# Plotting regression graph
+plot_model(reg1, type = "pred", terms = c("binary_high_earnings", "before_score_card"))
+
+```
+
+The broad interpretation of the results:
+
+Linear regression model with interaction: Y = β0 + β1 X1 + β2 X2 + β3 X1X2
+
+Model output: average_index_score =  0.2543 - 0.2862 before_score_card + 0.0502 binary_high_earnings - 0.2173 before_score_card × binary_high_earnings
+
+mean_index_by_date: Continuous
+  - Average index score by date and school earnings
+before_score_card: Binary
+  0: Before the score card was introduced (September 2015)
+  1: After the score card was introduced (after September 2015)
+binary_high_earnings: Binary
+  1: High-earning schools
+  0: Low-earning schools
+
+B0 is the predicted index score when the variables before_score_card and binary_high_earnings are zero. This means the average index score from before the score card was introduced and from a low-income school is 0.2543 standard-deviation change in search interest, while holding the months constant. B0 is statistically significant at the 0.01 level.
+
+B1 is the difference in the average index score between groups where before_score_card = 0 and before_score_card = 1 and High earning schools = 0. B1 is the difference in the average index scores from before and after the score cards were introduced for low-earning schools. Therefore, for low-earning schools, after the score cards were introduced, they are expected to decrease by 0.2862 index standard-deviation change in search interest compared to before the score card was introduced while holding the months constant. B1 is statistically significant at the 0.001 level. 
+
+B2 compares binary_high_earnings = 1 compared to binary_high_earning = 0 where before_score_card = 0.
+Therefore, B2 is the difference in the average index score between high-earning and low-earning schools before the score card was introduced. Before the score card was presented, high-earning schools were expected to increase index scores by 0.0502 index standard-deviation change in search interest compared to low-earning schools, while holding the months constant. However, B2 is not statistically significant. Therefore there was no significant difference between high-earning and low-earning before the score card was introduced.
+
+
+b1 + b3
+(- 0.2862) + (-0.2173) = -0.5035
+
+-0.5035 is the effect of the score card on index scores for high-earning schools = 1. After the score cards were introduced, high-earning schools are expected to decrease by 0.5035 index standard-deviation change in search interest compared to before the score card was presented while holding the months constant. b2 and b3 are both statistically significant.
+
+In summary, the effect of the score card on index standard-deviation change in search interest is -0.2862 for low-earning schools, and the effect of the score card on index standard-deviation change in search interest is -0.5035 for high-earning schools, while holding the months constant. The difference between those two effects for high-earning and low-earning schools is -0.2173 index standard-deviation change in search interest (B3) while holding the months constant. The effect of the score card on index standard-deviation change in search interest is higher for high-earning schools than for low-earning schools while holding the months constant. Therefore, the scorecard's introduction negatively affected low-earning and higher-earning schools; however, there was more of a negative effect on high-earning schools than on low-earning ones.
+
+
+
+
+
+

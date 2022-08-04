@@ -13,11 +13,11 @@ library(dplyr)
 library(ggplot2)
 
 
-
+### Data Preperation ##
 
 ### Reading in Google trends data ###
 
-file_names <- list.files('Data/Lab3_Rawdata', pattern='trends_up_to_', full.names = TRUE) 
+file_names <- list.files('../Data/Lab3_Rawdata', pattern='trends_up_to_', full.names = TRUE) 
 google_trends <- map_df(file_names, read_csv)
 
 # Creating new variable 'Month and 'year'
@@ -33,8 +33,8 @@ google_trends <- google_trends %>%
   
 ### Reading in Score Card Data ###
 
-score_card <- read_csv('Data/Lab3_Rawdata/Most+Recent+Cohorts+(Scorecard+Elements).csv')
-id_name_link <- read_csv('Data/Lab3_Rawdata/id_name_link.csv')
+score_card <- read_csv('../Data/Lab3_Rawdata/Most+Recent+Cohorts+(Scorecard+Elements).csv')
+id_name_link <- read_csv('../Data/Lab3_Rawdata/id_name_link.csv')
 
 # Removing school names that show up more than once
 id_name_link <- id_name_link %>% 
@@ -99,7 +99,7 @@ processed_data$before_score_card <- ifelse(processed_data$date < '2015-09-01', 0
 processed_data$before_score_card <- as.factor(processed_data$before_score_card)
 
 # Exporting processed data
-write.csv(processed_data,"processed_data.csv", row.names = FALSE)
+write.csv(processed_data,"../Processed_data/processed_data.csv", row.names = FALSE)
 
 
 
