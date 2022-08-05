@@ -34,12 +34,9 @@ Research Question: Among colleges that predominantly grant bachelor's degrees, d
 The format of the variables I created considered the research question at hand. The question looks at the comparison between high and low-earnings schools. Therefore, I don't care as much about the individual schools or keywords because I am more interested in grouping them into their high or low-earning potential. The standarized indexes then represent the popularity or interest a potential student has in those schools based on how often a particular keyword is used for a school. Therefore, I found the average index scores for each month/year and for the high and low-earning schools to see the trends in the popularity over time. 
 
 
-```{r pressure, echo=FALSE}
+```{r echo = FALSE}
 # Load Data
 processed_data <- read_csv('../Processed_data/processed_data.csv')
-processed_data$binary_high_earnings <- as.factor(processed_data$binary_high_earnings)
-processed_data$before_score_card <- as.factor(processed_data$before_score_card)
-processed_data$Month <- as.factor(processed_data$Month)
 ```
 
 I am graphing the average index score by month and year for high (1) and low(0) earning schools. 
@@ -48,35 +45,45 @@ As you can see from the graph, there is a seasonal trend where there is an incre
 
 Further, there is no indication of a change in the trends before and after the introduction of the scorecard. Both high and low-earning schools appear to have no change in the trend before or after September 2015. 
 
-```{r cars} 
+```{r} 
+processed_data <- processed_data %>% 
+  group_by(date, binary_high_earnings)%>% 
+  summarise(average_index = mean(index_standard)) 
+
+processed_data$before_score_card <- ifelse(processed_data$date < '2015-09-01', 0, 1) 
+processed_data$before_score_card <- as.factor(processed_data$before_score_card)
+processed_data$binary_high_earnings <- as.factor(processed_data$binary_high_earnings)
+
+
 processed_data %>% 
-ggplot( aes(x = date, y = mean_index_by_date, color = binary_high_earnings)) +
-  geom_line() + geom_point() + geom_vline(xintercept = as.Date("2015-09-01"))
+ggplot( aes(x = date, y = average_index, color = binary_high_earnings)) +
+  geom_line() + geom_point() + geom_vline(xintercept = as.Date("2015-09-01"))+ geom_smooth(method = 'lm')
 
 ```
 
 As you can see from the scatter plots below, from both high and low-earning schools, there has been a steady decline in index scores or popularity in both schools throughout time. Once again, you can see the seasonality aspect throughout the year in which the regression does not fit a straight line well. This would be indicative of polynomial regression, although instead, we are interested in the interaction between the scorecard and high vs. low earning schools on index scores. Therefore, to accommodate this, we would need to control for seasonality by singling out the month as a factor variable. Controlling the month would solve the endogeneity problem so we can see the true effect of x on y.
 
 
-```{r processed_data}
+```{r}
 
 library(tidyverse) 
 
+
 high_df <- processed_data %>% 
-  select(date, mean_index_by_date, binary_high_earnings,before_score_card, Month ) %>% 
+  select(date, average_index, binary_high_earnings, before_score_card) %>% 
   filter(binary_high_earnings == 1)
 
 low_df <- processed_data %>% 
-  select(date, mean_index_by_date, binary_high_earnings,before_score_card, Month ) %>% 
+  select(date, average_index, binary_high_earnings,before_score_card) %>% 
   filter(binary_high_earnings == 0)
 
 
-ggplot(high_df, aes(x = date, y = mean_index_by_date)) + 
+ggplot(high_df, aes(x = date, y = average_index)) + 
   geom_point() + # Draw points
   geom_smooth(method = 'lm') # add OLS line
 
 
-ggplot(low_df, aes(x = date, y = mean_index_by_date)) + 
+ggplot(low_df, aes(x = date, y = average_index)) + 
   geom_point() + # Draw points
   geom_smooth(method = 'lm') # add OLS line
   
@@ -98,10 +105,15 @@ Control: Month (Categorical)
 The relationship between X and  Y is different for different values of Z. To run the regression, we include X*Z  in the model and Z by itself. The goal is to see how the Scorecard shifted interest between high- and low-earnings colleges. In addition, we add the control for the month in the model.
 
 
-```{r processed_data}
+```{r}
+
+# Adding in month variable
+processed_data$month <- month(processed_data$date)
+processed_data$month <- as.factor(processed_data$month)
+
 
 # High and low earning schools controlling for month.
-reg1 <-feols(mean_index_by_date ~ before_score_card + binary_high_earnings + before_score_card*binary_high_earnings + Month, data = processed_data)
+reg1 <-feols(average_index ~ before_score_card + binary_high_earnings + before_score_card*binary_high_earnings + month, data = processed_data)
 
 etable(reg1)
 
@@ -111,26 +123,28 @@ Heteroskedasticity Test:
 
 Does the variance of the residuals differ across different levels of the x-axis? The X-axis is before/after the score card was introduced. Going from before the score card was presented to after, how does that change our probability of it being from a high-earning school? We can calculate the variance of those residues for high-earning and low-earning schools separately.
 
-We are getting the residuals out of the model. The variance of the residuals before the score card was introduced is 0.056, and after it is 0.004. There is more unexplained variation from before the score card was introduced for index scores than after. The results show a difference across the x-axis, therefore we have heteroskedasticity in the model. The model should use heteroskedasticity-robust standard errors in the model.
+We are getting the residuals out of the model. The variance of the residuals before the score card was introduced is 0.063, and after it is 0.004. There is more unexplained variation from before the score card was introduced for index scores than after. The results show a difference across the x-axis, therefore we have heteroskedasticity in the model. The model should use heteroskedasticity-robust standard errors in the model.
 
 
-```{r processed_data}
-processed_data%>% 
-  mutate(resid = resid(reg1)) %>%
+```{r}
+
+processed_data$resid <- resid(reg1)
+processed_data %>% 
   group_by(before_score_card) %>%
   summarize(variance_of_resid = var(resid))
-
+help("mutate")
 ```
 
 Original model with the with robust standard errors included. 
 
-```{r processed_data}
+```{r}
 
 library(sjPlot)
 library(sjmisc)
 library(ggplot2)
 
-reg1 <-feols(mean_index_by_date ~ before_score_card + binary_high_earnings + before_score_card*binary_high_earnings + Month, data = processed_data, vcov = 'hetero')
+reg1 <-feols(average_index ~ before_score_card + binary_high_earnings + before_score_card*binary_high_earnings + month, data = processed_data, vcov = 'hetero')
+
 etable(reg1)
 
 
