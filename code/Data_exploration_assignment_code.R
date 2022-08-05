@@ -7,6 +7,7 @@ library(dplyr)
 library(fs)
 library(purrr)
 library(lubridate)
+library(fixest)
 
 ### Data Preparation ##
 
