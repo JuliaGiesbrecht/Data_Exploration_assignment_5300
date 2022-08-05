@@ -34,8 +34,9 @@ Research Question: Among colleges that predominantly grant bachelor's degrees, d
 The format of the variables I created considered the research question at hand. The question looks at the comparison between high and low-earnings schools. Therefore, I don't care as much about the individual schools or keywords because I am more interested in grouping them into their high or low-earning potential. The standarized indexes then represent the popularity or interest a potential student has in those schools based on how often a particular keyword is used for a school. Therefore, I found the average index scores for each month/year and for the high and low-earning schools to see the trends in the popularity over time. 
 
 
-```{r echo = FALSE}
+```{r}
 # Load Data
+library(tidyverse)
 processed_data <- read_csv('../Processed_data/processed_data.csv')
 ```
 
@@ -43,18 +44,19 @@ I am graphing the average index score by month and year for high (1) and low(0) 
 
 As you can see from the graph, there is a seasonal trend where there is an increase in the popularity of keywords (average index scores) for high-earning and low-earning schools. This trend throughout the school year is consistent with when students apply for their undergraduate degrees. Interestingly, the overall trend for both high and low earnings schools shows a steady decrease in the popularity of keywords from 2013-2016. Furthermore, high and low-earning schools follow this same trend throughout the graph, with no striking difference.
 
-Further, there is no indication of a change in the trends before and after the introduction of the scorecard. Both high and low-earning schools appear to have no change in the trend before or after September 2015. 
-
+Further, there is no indication of a change in the trends before and after the introduction of the scorecard. Both high and low-earning schools appear to have no change in the downward trend before or after September 2015. 
 ```{r} 
+# grouping standardized indexes by date and high vs low earning schools
 processed_data <- processed_data %>% 
   group_by(date, binary_high_earnings)%>% 
   summarise(average_index = mean(index_standard)) 
 
+# Adding a binary for before and after the score card was introduced
 processed_data$before_score_card <- ifelse(processed_data$date < '2015-09-01', 0, 1) 
 processed_data$before_score_card <- as.factor(processed_data$before_score_card)
 processed_data$binary_high_earnings <- as.factor(processed_data$binary_high_earnings)
 
-
+# Graphing index scores over time for high and low earning schools
 processed_data %>% 
 ggplot( aes(x = date, y = average_index, color = binary_high_earnings)) +
   geom_line() + geom_point() + geom_vline(xintercept = as.Date("2015-09-01"))+ geom_smooth(method = 'lm')
@@ -68,21 +70,21 @@ As you can see from the scatter plots below, from both high and low-earning scho
 
 library(tidyverse) 
 
-
+# Creating data frame for just high earning schools
 high_df <- processed_data %>% 
   select(date, average_index, binary_high_earnings, before_score_card) %>% 
   filter(binary_high_earnings == 1)
-
+# Creating data frame for just low earning schools
 low_df <- processed_data %>% 
   select(date, average_index, binary_high_earnings,before_score_card) %>% 
   filter(binary_high_earnings == 0)
 
-
+# Plotting scatter plot for high earning schools over time
 ggplot(high_df, aes(x = date, y = average_index)) + 
   geom_point() + # Draw points
   geom_smooth(method = 'lm') # add OLS line
 
-
+# Plotting scatter plot for low earning schools over time
 ggplot(low_df, aes(x = date, y = average_index)) + 
   geom_point() + # Draw points
   geom_smooth(method = 'lm') # add OLS line
@@ -106,6 +108,8 @@ The relationship between X and  Y is different for different values of Z. To run
 
 
 ```{r}
+library(lubridate)
+library(fixest)
 
 # Adding in month variable
 processed_data$month <- month(processed_data$date)
@@ -132,7 +136,7 @@ processed_data$resid <- resid(reg1)
 processed_data %>% 
   group_by(before_score_card) %>%
   summarize(variance_of_resid = var(resid))
-help("mutate")
+
 ```
 
 Original model with the with robust standard errors included. 
@@ -157,9 +161,9 @@ The broad interpretation of the results:
 
 Linear regression model with interaction: Y = β0 + β1 X1 + β2 X2 + β3 X1X2
 
-Model output: average_index_score =  0.2543 - 0.2862 before_score_card + 0.0502 binary_high_earnings - 0.2173 before_score_card × binary_high_earnings
+Model output: average_index_score =  0.2451 - 0.2941 before_score_card + 0.0510 binary_high_earnings - 0.2237 before_score_card × binary_high_earnings
 
-mean_index_by_date: Continuous
+average_index: Continuous
   - Average index score by date and school earnings
 before_score_card: Binary
   0: Before the score card was introduced (September 2015)
@@ -168,22 +172,22 @@ binary_high_earnings: Binary
   1: High-earning schools
   0: Low-earning schools
 
-B0 is the predicted index score when the variables before_score_card and binary_high_earnings are zero. This means the average index score from before the score card was introduced and from a low-income school is 0.2543 standard-deviation change in search interest, while holding the months constant. B0 is statistically significant at the 0.01 level.
+B0 is the predicted index score when the variables before_score_card and binary_high_earnings are zero. This means the average index score from before the score card was introduced and from a low-income school is 0.2451 standard-deviation change in search interest, while holding the months constant. B0 is statistically significant at the 0.01 level.
 
-B1 is the difference in the average index score between groups where before_score_card = 0 and before_score_card = 1 and High earning schools = 0. B1 is the difference in the average index scores from before and after the score cards were introduced for low-earning schools. Therefore, for low-earning schools, after the score cards were introduced, they are expected to decrease by 0.2862 index standard-deviation change in search interest compared to before the score card was introduced while holding the months constant. B1 is statistically significant at the 0.001 level. 
+B1 is the difference in the average index score between groups where before_score_card = 0 and before_score_card = 1 and High earning schools = 0. B1 is the difference in the average index scores from before and after the score cards were introduced for low-earning schools. Therefore, for low-earning schools, after the score cards were introduced, they are expected to decrease by 0.2941 index standard-deviation change in search interest compared to before the score card was introduced while holding the months constant. B1 is statistically significant at the 0.001 level. 
 
 B2 compares binary_high_earnings = 1 compared to binary_high_earning = 0 where before_score_card = 0.
-Therefore, B2 is the difference in the average index score between high-earning and low-earning schools before the score card was introduced. Before the score card was presented, high-earning schools were expected to increase index scores by 0.0502 index standard-deviation change in search interest compared to low-earning schools, while holding the months constant. However, B2 is not statistically significant. Therefore there was no significant difference between high-earning and low-earning before the score card was introduced.
+Therefore, B2 is the difference in the average index score between high-earning and low-earning schools before the score card was introduced. Before the score card was presented, high-earning schools were expected to increase index scores by 0.0510 index standard-deviation change in search interest compared to low-earning schools, while holding the months constant. However, B2 is not statistically significant. Therefore there was no significant difference between high-earning and low-earning before the score card was introduced.
 
 
 b1 + b3
-(- 0.2862) + (-0.2173) = -0.5035
+(- 0.2941) + (-0.2237) = -0.5178
 
--0.5035 is the effect of the score card on index scores for high-earning schools = 1. After the score cards were introduced, high-earning schools are expected to decrease by 0.5035 index standard-deviation change in search interest compared to before the score card was presented while holding the months constant. b2 and b3 are both statistically significant.
+-0.5178 is the effect of the score card on index scores for high-earning schools = 1. After the score cards were introduced, high-earning schools are expected to decrease by -0.5178 index standard-deviation change in search interest compared to before the score card was presented while holding the months constant. b2 and b3 are both statistically significant.
 
-In summary, the effect of the score card on index standard-deviation change in search interest is -0.2862 for low-earning schools, and the effect of the score card on index standard-deviation change in search interest is -0.5035 for high-earning schools, while holding the months constant. The difference between those two effects for high-earning and low-earning schools is -0.2173 index standard-deviation change in search interest (B3) while holding the months constant. The effect of the score card on index standard-deviation change in search interest is higher for high-earning schools than for low-earning schools while holding the months constant. Therefore, the scorecard's introduction negatively affected low-earning and higher-earning schools; however, there was more of a negative effect on high-earning schools than on low-earning ones.
+In summary, the effect of the score card on average index scores is -0.2941 index standard-deviation change in search interest for low-earning schools, and the effect of the score card on average index scores is -0.5178  standard-deviation change in search interest for high-earning schools, while holding the months constant. The difference between those two effects for high-earning and low-earning schools is -0.2237 index standard-deviation change in search interest (B3) while holding the months constant. The effect of the score card on index standard-deviation change in search interest is higher for high-earning schools than for low-earning schools while holding the months constant. Therefore, the scorecard's introduction negatively affected low-earning and higher-earning schools; however, there was more of a negative effect on high-earning schools than on low-earning ones.
 
-
+In conclusion, to answer the research question,  among colleges that predominantly grant bachelor’s degrees, the release of the Scorecard did not shift student interest in high-earnings colleges relative to low-earnings ones. However, as we can see from the analysis, based on how I define high-earning schools and low-earning schools, the Scorecard reduced interest in both high and low earning with a more significant adverse effect on high-earning schools.
 
 
 
